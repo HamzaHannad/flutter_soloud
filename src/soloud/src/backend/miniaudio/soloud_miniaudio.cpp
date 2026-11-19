@@ -930,12 +930,19 @@ namespace SoLoud
         contextConfig.coreaudio.noAudioSessionDeactivate = true;
         return ma_context_init(NULL, 0, &contextConfig, aContext);
 #elif defined(__ANDROID__)
-        // OpenSL only on Android <= 10, where uninitializing an AAudio device
+        // OpenSL only on Android <= 12L, where uninitializing an AAudio device
         // can crash (see the MA_NO_AAUDIO note at the top of this file).
         // miniaudio's default order would pick AAudio from API 27.
+        //
+        // Balote patch: upstream stops at Android 10 (API 29). Play vitals
+        // for Balote 1.0.7 showed the same family on Android 11 and 12: an
+        // AAudio stream torn down by a reroute while AudioFlinger still calls
+        // into it (AudioTrack::setVolume on a destroyed mutex, and
+        // AudioStreamLegacy::onAudioDeviceUpdate CFI aborts). None showed on
+        // Android 13 or later, so OpenSL up to API 32 (12L).
         ma_backend backends[] = { ma_backend_aaudio, ma_backend_opensl };
         ma_uint32 backendCount = 2;
-        if (android_get_device_api_level() <= 29) {
+        if (android_get_device_api_level() <= 32) {
             backends[0] = ma_backend_opensl;
             backendCount = 1;
         }
